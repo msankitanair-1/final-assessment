@@ -5,11 +5,12 @@ import { useNavigate } from "react-router-dom";
 
 const Add = () => {
   const navigate = useNavigate();
+
   const [inputs, setInputs] = useState({
     EmpName: "",
     designation: "",
     empId: "",
-    img_url: "",
+    img_url: ""
   });
 
   const inputHandler = (e) => {
@@ -17,22 +18,36 @@ const Add = () => {
   };
 
   const addData = async () => {
+    // Prevent empty submissions
+    if (!inputs.EmpName || !inputs.designation || !inputs.empId) {
+      return alert("Please fill in all required fields");
+    }
+
     try {
-      const response = await axios.post("http://localhost:5000/add", inputs);
-      console.log("Response:", response.data);
+      const response = await axios.post(
+        "http://localhost:5000/employees",
+        inputs
+      );
+      console.log("SUCCESS:", response.data);
+      alert("Employee added successfully ✅");
 
-      setInputs({
-        EmpName: "",
-        designation: "",
-        empId: "",
-        img_url: "",
-      });
+      // Reset form
+      setInputs({ EmpName: "", designation: "", empId: "", img_url: "" });
 
-      alert("Employee added successfully!");
-      // navigate("/"); // optional
+      // Optional: navigate to home page
+      navigate("/");
     } catch (error) {
-      console.error("Error adding employee:", error);
-      alert("Failed to add employee");
+      console.error("ERROR FULL:", error);
+
+      if (error.response) {
+        // Server returned an error
+        alert(`Failed to add employee: ${error.response.data.message}`);
+      } else if (error.request) {
+        // No response from server
+        alert("No response from backend");
+      } else {
+        alert(`Error: ${error.message}`);
+      }
     }
   };
 
@@ -63,6 +78,7 @@ const Add = () => {
           value={inputs.EmpName}
           fullWidth
         />
+
         <TextField
           variant="outlined"
           placeholder="Designation"
@@ -70,6 +86,7 @@ const Add = () => {
           name="designation"
           value={inputs.designation}
         />
+
         <TextField
           variant="outlined"
           placeholder="Employee Id"
@@ -77,13 +94,15 @@ const Add = () => {
           name="empId"
           value={inputs.empId}
         />
+
         <TextField
           variant="outlined"
-          placeholder="Photo URL"
+          placeholder="Photo (paste image link)"
           onChange={inputHandler}
           name="img_url"
           value={inputs.img_url}
         />
+
         <Button variant="contained" color="secondary" onClick={addData}>
           Submit
         </Button>
