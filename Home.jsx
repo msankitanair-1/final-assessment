@@ -4,23 +4,36 @@ import {
   Card,
   CardActions,
   CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
+  TextField,
   Typography,
 } from "@mui/material";
-import axios from "axios";
 import "../App.css";
+import axios from "axios";
 
 const Home = () => {
   const [data, setData] = useState([]);
+  const [open, setOpen] = useState(false); // for modal
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [formValues, setFormValues] = useState({
+    EmpName: "",
+    designation: "",
+    empId: "",
+    img_url: "",
+  });
 
-  // Fetch all employees from backend
-  const fetchData = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/get");
-      setData(res.data);
-    } catch (err) {
-      console.error("Error fetching employees:", err);
-    }
+  const BASE_URL = "http://localhost:5000"; // backend port
+
+  // Fetch all employees
+  const fetchData = () => {
+    axios
+      .get(`${BASE_URL}/employees`)
+      .then((res) => setData(res.data))
+      .catch((err) => console.log(err));
   };
 
   useEffect(() => {
@@ -28,57 +41,61 @@ const Home = () => {
   }, []);
 
   // Delete employee
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/delete/${id}`);
-      setData(data.filter((emp) => emp._id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDelete = (empId) => {
+    axios
+      .delete(`${BASE_URL}/employees/${empId}`)
+      .then((res) => {
+        alert(res.data.message);
+        fetchData();
+      })
+      .catch((err) => console.log(err));
   };
 
-  // Update employee
-  const handleUpdate = async (emp) => {
-    try {
-      // Simple prompt for demo purposes
-      const newName = prompt("Enter new Employee Name", emp.EmpName);
-      const newDesignation = prompt(
-        "Enter new Designation",
-        emp.designation
-      );
-      const newEmpId = prompt("Enter new Employee ID", emp.empId);
-      const newImg = prompt("Enter new Image URL", emp.img_url);
+  // Open modal with selected employee data
+  const handleOpenUpdate = (employee) => {
+    setSelectedEmployee(employee);
+    setFormValues({
+      EmpName: employee.EmpName,
+      designation: employee.designation,
+      empId: employee.empId,
+      img_url: employee.img_url,
+    });
+    setOpen(true);
+  };
 
-      if (!newName || !newDesignation || !newEmpId) return;
+  // Close modal
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedEmployee(null);
+  };
 
-      const updatedData = {
-        EmpName: newName,
-        designation: newDesignation,
-        empId: newEmpId,
-        img_url: newImg,
-      };
+  // Handle form change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormValues({ ...formValues, [name]: value });
+  };
 
-      const res = await axios.put(
-        `http://localhost:5000/update/${emp._id}`,
-        updatedData
-      );
-
-      // Update local state
-      setData(data.map((e) => (e._id === emp._id ? res.data : e)));
-    } catch (err) {
-      console.error(err);
-    }
+  // Submit update
+  const handleUpdateSubmit = () => {
+    axios
+      .put(`${BASE_URL}/employees/${selectedEmployee.empId}`, formValues)
+      .then((res) => {
+        alert(res.data.message);
+        fetchData();
+        handleClose();
+      })
+      .catch((err) => console.log(err));
   };
 
   return (
     <div className="Mar">
       <Grid container spacing={6}>
         {data.map((val) => (
-          <Grid item xs={12} sm={6} md={4} key={val._id}>
+          <Grid item xs={12} sm={6} md={4} key={val.empId}>
             <Card sx={{ display: "flex", flexDirection: "column" }}>
               <CardContent>
                 <img
-                  src={val.img_url || "https://via.placeholder.com/150"}
+                  src={val.img_url}
                   className="img-fluid rounded-start"
                   width="100%"
                   alt="employee"
@@ -94,15 +111,15 @@ const Home = () => {
                   size="small"
                   variant="contained"
                   color="secondary"
-                  onClick={() => handleDelete(val._id)}
+                  onClick={() => handleDelete(val.empId)}
                 >
                   Delete
                 </Button>
                 <Button
                   size="small"
                   variant="contained"
-                  color="secondary"
-                  onClick={() => handleUpdate(val)}
+                  color="primary"
+                  onClick={() => handleOpenUpdate(val)}
                 >
                   Update
                 </Button>
@@ -111,6 +128,53 @@ const Home = () => {
           </Grid>
         ))}
       </Grid>
+
+      {/* Update Modal */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Update Employee</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Employee Name"
+            name="EmpName"
+            fullWidth
+            value={formValues.EmpName}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Designation"
+            name="designation"
+            fullWidth
+            value={formValues.designation}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Employee ID"
+            name="empId"
+            fullWidth
+            value={formValues.empId}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            label="Image URL"
+            name="img_url"
+            fullWidth
+            value={formValues.img_url}
+            onChange={handleChange}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateSubmit} color="primary">
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
