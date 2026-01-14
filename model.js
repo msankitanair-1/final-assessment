@@ -1,5 +1,5 @@
 
-const mongoose = require("mongoose"); // 🔴 This was missing
+const mongoose = require("mongoose"); 
 
 // Define the schema
 const schema = new mongoose.Schema({
